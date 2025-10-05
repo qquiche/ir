@@ -6,46 +6,94 @@ import ir.utilities.*;
 import ir.classifiers.*;
 
 /**
- * Standalone proximity-enhanced inverted index.
+ * Proximity-enhanced inverted index that improves retrieval by considering
+ * the closeness and order of query terms in documents.
  *
- * Usage (same flags as baseline):
- *   javac ir/vsr/*.java
- *   java ir.vsr.InvertedPosIndex -html <path-to-dataset>
+ * This index builds on a baseline inverted index with cosine similarity by
+ * adding a positional component. The positional component measures how closely
+ * the query terms appear to each other in each document and penalizes reversed
+ * order. The final score divides the baseline cosine score by the average
+ * proximity distance so that lower (better) proximity distances increase rank.</p>
  *
- * Prints: Score: <final> (Vector: <cos>; Proximity: <prox>)
  */
 public class InvertedPosIndex {
 
-  /** ========= Config (no extra CLI flags) ========= */
-  public static final int MAX_RETRIEVALS = 10;  // same paging as baseline
+  /** Maximum number of retrievals to display per page. */
+  public static final int MAX_RETRIEVALS = 10;
 
-  private static final double LAMBDA        = 0.25; // blend for avg pairwise distance
-  private static final double ORDER_PENALTY = 1.8;  // penalty for reverse order
-  private static final double BIG_S         = 1_000_000.0; // penalty when terms missing
+  /** Penalty multiplier applied when terms appear in the opposite order to the query. */
+  private static final double ORDER_PENALTY = 2.0;
 
-  /** ========= Core index state (mirrors baseline) ========= */
+  /** Fallback distance assigned when a term pair cannot be matched in a document. */
+  private static final double MAX_DISTANCE = 1000.0;
+
+  /** Baseline index mapping tokens to their document-level statistics and postings. */
   public Map<String, TokenInfo> tokenHash = new HashMap<>();
-  public List<DocumentReference> docRefs   = new ArrayList<>();
 
-  public File  dirFile;
+  /** References to all indexed documents. */
+  public List<DocumentReference> docRefs = new ArrayList<>();
+
+  /** Directory containing the dataset to index. */
+  public File dirFile;
+
+  /** Document type selector (e.g., {@link DocumentIterator#TYPE_TEXT} or {@link DocumentIterator#TYPE_HTML}). */
   public short docType = DocumentIterator.TYPE_TEXT;
+
+  /** Whether stemming is applied during tokenization. */
   public boolean stem = false;
+
+  /** Whether interactive relevance feedback is enabled. */
   public boolean feedback = false;
 
-  /** ========= Positional index ========= */
+  /**
+   * A positional posting for a single term in a single document.
+   * Holds the document reference, term frequency, and the sorted list of positions.
+   */
   public static class PosPosting {
+    /** Document containing the term. */
     final DocumentReference docRef;
+    /** Term frequency in the document. */
     final int tf;
-    final int[] positions; // strictly increasing in filtered-token space
-    PosPosting(DocumentReference d, int tf, int[] p){ this.docRef=d; this.tf=tf; this.positions=p; }
+    /** Sorted positions of the term within the document after filtering. */
+    final int[] positions;
+
+    /**
+     * Creates a positional posting.
+     *
+     * @param d document reference
+     * @param tf term frequency in the document
+     * @param p sorted positions where the term occurs
+     */
+    PosPosting(DocumentReference d, int tf, int[] p) {
+      this.docRef = d;
+      this.tf = tf;
+      this.positions = p;
+    }
   }
+
+  /**
+   * Positional token information stored in the positional index,
+   * including IDF (mirrored from baseline index) and a list of positional postings.
+   */
   public static class PosTokenInfo {
+    /** Inverse document frequency of the token. */
     double idf = 0.0;
+    /** List of positional postings for this token. */
     final List<PosPosting> occList = new ArrayList<>();
   }
+
+  /** Positional index mapping tokens to their positional statistics. */
   public Map<String, PosTokenInfo> posTokenHash = new HashMap<>();
 
-  /** ========= Constructors ========= */
+  /**
+   * Constructs an inverted positional index from a directory of documents.
+   *
+   * @param dirFile dataset directory
+   * @param docType document type flag (text or HTML)
+   * @param stem whether to apply stemming
+   * @param feedback whether to enable interactive relevance feedback
+   * @throws IllegalStateException if indexing is invoked more than once
+   */
   public InvertedPosIndex(File dirFile, short docType, boolean stem, boolean feedback) {
     this.dirFile = dirFile;
     this.docType = docType;
@@ -54,44 +102,68 @@ public class InvertedPosIndex {
     indexDocuments();
   }
 
+  /**
+   * Constructs an inverted positional index from labeled examples.
+   *
+   * @param examples list of examples that provide documents and vectors
+   * @throws IllegalStateException if indexing is invoked more than once
+   */
   public InvertedPosIndex(List<Example> examples) {
     indexDocuments(examples);
   }
 
-  /** ========= Build: index the directory (mirrors baseline flow) ========= */
+  /**
+   * Builds the baseline and positional indexes from all documents in {@link #dirFile}.
+   *
+   * @throws IllegalStateException if indexes are already populated
+   */
   protected void indexDocuments() {
     if (!tokenHash.isEmpty() || !docRefs.isEmpty()) {
       throw new IllegalStateException("Cannot indexDocuments more than once.");
     }
+
     DocumentIterator docIter = new DocumentIterator(dirFile, docType, stem);
     System.out.println("Indexing documents in " + dirFile);
+
     while (docIter.hasMoreDocuments()) {
       FileDocument doc = docIter.nextDocument();
       System.out.print(doc.file.getName() + ",");
       HashMapVector vector = doc.hashMapVector();
       indexDocument(doc, vector);
     }
+
     computeIDFandDocumentLengths();
     System.out.println("\nIndexed " + docRefs.size() + " documents with " + size() + " unique terms.");
   }
 
-  /** Index a list of Examples (kept for API parity). */
+  /**
+   * Builds the baseline and positional indexes from a set of examples.
+   *
+   * @param examples list of examples to index
+   * @throws IllegalStateException if indexes are already populated
+   */
   protected void indexDocuments(List<Example> examples) {
     if (!tokenHash.isEmpty() || !docRefs.isEmpty()) {
       throw new IllegalStateException("Cannot indexDocuments more than once.");
     }
+
     for (Example example : examples) {
       FileDocument doc = example.getDocument();
       HashMapVector vector = example.getHashMapVector();
       indexDocument(doc, vector);
     }
+
     computeIDFandDocumentLengths();
     System.out.println("Indexed " + docRefs.size() + " documents with " + size() + " unique terms.");
   }
 
-  /** Index a single document: baseline postings + positional postings. */
+  /**
+   * Indexes a single document into the baseline inverted index and the positional index.
+   *
+   * @param doc file-backed document to index
+   * @param vector term-frequency vector for the document
+   */
   protected void indexDocument(FileDocument doc, HashMapVector vector) {
-    // ---- Baseline: add docRef & BoW postings ----
     DocumentReference docRef = new DocumentReference(doc);
     docRefs.add(docRef);
 
@@ -106,16 +178,12 @@ public class InvertedPosIndex {
       tokenInfo.occList.add(new TokenOccurrence(docRef, count));
     }
 
-    // ---- Positional: re-tokenize with identical filtering and record positions ----
-    Document posDoc = (this.docType == DocumentIterator.TYPE_HTML)
-    ? new RawHTMLFileDocument(doc.file)   // implement like RawTextFileDocument
-    : new RawTextFileDocument(doc.file);
-
-
+    Document posDoc = createRawDocument(doc.file);
     Map<String, List<Integer>> term2pos = new HashMap<>();
     int filteredPos = 0;
+
     while (posDoc.hasMoreTokens()) {
-      String tok = posDoc.nextToken(); // filtered (stopwords removed; optionally stemmed)
+      String tok = posDoc.nextToken();
       if (tok == null) break;
       term2pos.computeIfAbsent(tok, k -> new ArrayList<>()).add(filteredPos++);
     }
@@ -128,38 +196,65 @@ public class InvertedPosIndex {
     }
   }
 
-  /** Compute IDF and doc lengths (same math as baseline) and mirror IDF into positional map. */
+  /**
+   * Creates an appropriate raw document reader for positional indexing,
+   * matching the tokenizer/stemming configuration of the baseline index.
+   *
+   * @param file input file
+   * @return a raw {@link Document} for token iteration
+   */
+  private Document createRawDocument(File file) {
+    if (docType == DocumentIterator.TYPE_HTML) {
+      return new RawHTMLFileDocument(file, stem);
+    } else {
+      return new RawTextFileDocument(file, stem);
+    }
+  }
+
+  /**
+   * Computes IDF for all tokens, accumulates and normalizes document lengths for cosine similarity,
+   * and mirrors IDF values into the positional index for corresponding tokens.
+   */
   protected void computeIDFandDocumentLengths() {
     double N = docRefs.size();
     Iterator<Map.Entry<String, TokenInfo>> it = tokenHash.entrySet().iterator();
+
     while (it.hasNext()) {
       Map.Entry<String, TokenInfo> entry = it.next();
       TokenInfo tokenInfo = entry.getValue();
       double numDocRefs = tokenInfo.occList.size();
       double idf = Math.log(N / numDocRefs);
+
       if (idf == 0.0) {
         it.remove();
       } else {
         tokenInfo.idf = idf;
         for (TokenOccurrence occ : tokenInfo.occList) {
-          occ.docRef.length = occ.docRef.length + Math.pow(idf * occ.count, 2);
+          occ.docRef.length += Math.pow(idf * occ.count, 2);
         }
       }
     }
+
     for (DocumentReference docRef : docRefs) {
       docRef.length = Math.sqrt(docRef.length);
     }
-    // Mirror IDF to positional map
+
     for (Map.Entry<String, TokenInfo> e : tokenHash.entrySet()) {
       PosTokenInfo pti = posTokenHash.get(e.getKey());
-      if (pti != null) pti.idf = e.getValue().idf;
+      if (pti != null) {
+        pti.idf = e.getValue().idf;
+      }
     }
   }
 
-  /** ========= Retrieval API (string/doc/vector), with proximity-aware final scoring ========= */
-
+  /**
+   * Retrieves ranked documents for a raw string query, using both cosine
+   * similarity and proximity enhancement.
+   *
+   * @param input query string
+   * @return ranked retrieval results
+   */
   public Retrieval[] retrieve(String input) {
-    // Build two docs to preserve order and get vector on same pipeline
     TextStringDocument orderDoc = new TextStringDocument(input, stem);
     List<String> qOrder = extractOrderedUniqueTokens(orderDoc);
 
@@ -169,122 +264,207 @@ public class InvertedPosIndex {
     return retrieve(qv, qOrder);
   }
 
+  /**
+   * Retrieves ranked documents for a query represented as a {@link Document}.
+   *
+   * @param doc query as a tokenized document
+   * @return ranked retrieval results
+   */
   public Retrieval[] retrieve(Document doc) {
-    // Fallback: we don't have raw query text here for a second pass; use vector and alpha order
     return retrieve(doc.hashMapVector());
   }
 
+  /**
+   * Retrieves ranked documents for a query represented as a {@link HashMapVector}.
+   * The term order is derived from the vector's key set (sorted).
+   *
+   * @param vector query vector
+   * @return ranked retrieval results
+   */
   public Retrieval[] retrieve(HashMapVector vector) {
-    // Deterministic fallback order for terms (used only if no explicit order provided)
     List<String> qTerms = new ArrayList<>(vector.hashMap.keySet());
     Collections.sort(qTerms);
     return retrieve(vector, qTerms);
   }
 
-/** Core retrieval with a known query term order. */
-protected Retrieval[] retrieve(HashMapVector queryVector, List<String> qOrder) {
-  // ---- Stage 1: cosine accumulation over ALL tokens (baseline math) ----
-  Map<DocumentReference, DoubleValue> retrievalHash = new HashMap<>();
-  double queryLength = 0.0;
+  /**
+   * Core retrieval method combining baseline cosine similarity with a proximity score.
+   * The final score is computed as {@code cosine / proximityDistance}, where a lower
+   * average proximity distance (better proximity) increases rank.
+   *
+   * @param queryVector query term-frequency vector
+   * @param qOrder ordered list of unique query terms as they appeared in the query
+   * @return ranked retrieval results
+   */
+  protected Retrieval[] retrieve(HashMapVector queryVector, List<String> qOrder) {
+    Map<DocumentReference, DoubleValue> retrievalHash = new HashMap<>();
+    double queryLength = 0.0;
 
-  for (Map.Entry<String, Weight> entry : queryVector.entrySet()) {
-    String token = entry.getKey();
-    double count = entry.getValue().getValue();
-    queryLength += incorporateToken(token, count, retrievalHash);
-  }
-  queryLength = Math.sqrt(queryLength);
+    for (Map.Entry<String, Weight> entry : queryVector.entrySet()) {
+      String token = entry.getKey();
+      double count = entry.getValue().getValue();
+      queryLength += incorporateToken(token, count, retrievalHash);
+    }
+    queryLength = Math.sqrt(queryLength);
 
-  // Convert to array of cosine-scored Retrievals (normalized)
-  RetrievalProx[] candidates = new RetrievalProx[retrievalHash.size()];
-  int idx = 0;
-  for (Map.Entry<DocumentReference, DoubleValue> e : retrievalHash.entrySet()) {
-    DocumentReference d = e.getKey();
-    double cosine = e.getValue().value / (queryLength * d.length);
-    candidates[idx++] = new RetrievalProx(d, cosine, cosine, 0.0);
-  }
+    RetrievalProx[] candidates = new RetrievalProx[retrievalHash.size()];
+    int idx = 0;
 
-  // ---- Stage 2: compute proximity distance and final score for ALL candidates ----
-  for (RetrievalProx rp : candidates) {
-    boolean hasAll = true;
-    List<int[]> posLists = new ArrayList<>(qOrder.size());
-    for (String qt : qOrder) {
-      int[] arr = positionsOf(qt, rp.docRef);
-      if (arr == null || arr.length == 0) { hasAll = false; break; }
-      posLists.add(arr);
+    for (Map.Entry<DocumentReference, DoubleValue> e : retrievalHash.entrySet()) {
+      DocumentReference d = e.getKey();
+      double cosine = e.getValue().value / (queryLength * d.length);
+      candidates[idx++] = new RetrievalProx(d, cosine, cosine, 0.0);
     }
 
-    if (!hasAll || qOrder.size() < 2) {
-    rp.prox = 0.0;
-    rp.score = rp.cosine / BIG_S;
-    } else {
-        double proxDist = computeProximityDistance(posLists);
-
-        if (proxDist == Double.POSITIVE_INFINITY) {
-            rp.prox = 0.0;
-            rp.score = rp.cosine / BIG_S;
-        } else {
-            rp.prox = 1.0 / proxDist;         // for reporting
-            rp.score = rp.cosine / proxDist;  // final score
-        }
+    for (RetrievalProx rp : candidates) {
+      double proximityScore = computeProximityScore(qOrder, rp.docRef);
+      rp.prox = proximityScore;
+      rp.score = rp.cosine / proximityScore;
     }
 
+    Arrays.sort(candidates);
+    return candidates;
   }
-
-  // ---- Stage 3: sort final scores (best to worst) ----
-  Arrays.sort(candidates);
-
-  return candidates;
-}
-
-/**
- * Compute the minimum span (in tokens) that covers all query terms in order.
- * Returns Double.POSITIVE_INFINITY if the document does not contain all terms in order.
- */
-protected static double computeProximityDistance(List<int[]> posLists) {
-    int k = posLists.size();
-    if (k < 2) return Double.POSITIVE_INFINITY;
-
-    double best = Double.POSITIVE_INFINITY;
-
-    // For every occurrence of the first query term
-    for (int start : posLists.get(0)) {
-        int cur = start;
-        boolean ok = true;
-
-        // Walk through the remaining terms in query order
-        for (int i = 1; i < k; i++) {
-            int[] positions = posLists.get(i);
-
-            // Binary search to find the first occurrence >= cur
-            int idx = Arrays.binarySearch(positions, cur);
-            int ins = (idx >= 0) ? idx : -idx - 1;
-
-            if (ins >= positions.length) {
-                ok = false; break; // can't complete chain
-            }
-            cur = positions[ins];
-        }
-
-        if (ok) {
-            int span = cur - start + 1;
-            if (span < best) best = span;
-        }
-    }
-
-    return best;
-}
-
-
-
 
   /**
-   * Baseline token incorporation: update retrievalHash with contributions of this token.
-   * Returns squared weight of the token for queryLength accumulation.
+   * Computes the average closest distance among all unordered pairs of unique query terms,
+   * measured across their occurrences within a document. If the dominant local occurrence
+   * order contradicts the query term order, the distance is multiplied by {@link #ORDER_PENALTY}.
+   *
+   * Returns 1.0 for single-term or single-unique-term queries.
+   *
+   * @param qOrder ordered list of unique query terms as they appeared in the query
+   * @param docRef document to evaluate
+   * @return average pairwise closest distance (lower is better)
+   */
+  protected double computeProximityScore(List<String> qOrder, DocumentReference docRef) {
+    if (qOrder.size() < 2) {
+      return 1.0;
+    }
+
+    List<String> uniqueTerms = new ArrayList<>();
+    Set<String> seen = new HashSet<>();
+    for (String term : qOrder) {
+      if (seen.add(term)) {
+        uniqueTerms.add(term);
+      }
+    }
+
+    if (uniqueTerms.size() < 2) {
+      return 1.0;
+    }
+
+    List<int[]> posLists = new ArrayList<>();
+    for (String term : uniqueTerms) {
+      int[] positions = getPositions(term, docRef);
+      posLists.add(positions != null ? positions : new int[0]);
+    }
+
+    double totalDistance = 0.0;
+    int pairCount = 0;
+
+    for (int i = 0; i < uniqueTerms.size(); i++) {
+      for (int j = i + 1; j < uniqueTerms.size(); j++) {
+        int[] pos1 = posLists.get(i);
+        int[] pos2 = posLists.get(j);
+        boolean expectForwardOrder = qOrder.indexOf(uniqueTerms.get(i)) < qOrder.indexOf(uniqueTerms.get(j));
+        double pairDistance = computeClosestPairDistance(pos1, pos2, expectForwardOrder);
+        totalDistance += pairDistance;
+        pairCount++;
+      }
+    }
+
+    double avgDistance = pairCount > 0 ? totalDistance / pairCount : MAX_DISTANCE;
+    return avgDistance;
+  }
+
+  /**
+   * Computes the closest distance between occurrences of two terms within a document,
+   * applying an order penalty when the nearest partner occurrence contradicts the
+   * expected query order.
+   *
+   * @param pos1 sorted positions of term 1
+   * @param pos2 sorted positions of term 2
+   * @param expectForwardOrder true if term 1 is expected to appear before term 2 in the query
+   * @return the smallest adjusted distance between any occurrence pair, or {@link #MAX_DISTANCE}
+   *         if one of the term arrays is empty
+   */
+  protected double computeClosestPairDistance(int[] pos1, int[] pos2, boolean expectForwardOrder) {
+    if (pos1.length == 0 || pos2.length == 0) {
+      return MAX_DISTANCE;
+    }
+
+    double minDistance = MAX_DISTANCE;
+
+    for (int p1 : pos1) {
+      int insertionPoint = Arrays.binarySearch(pos2, p1);
+
+      if (insertionPoint >= 0) {
+        minDistance = Math.min(minDistance, 0.0);
+      } else {
+        insertionPoint = -insertionPoint - 1;
+
+        if (insertionPoint < pos2.length) {
+          int p2 = pos2[insertionPoint];
+          double distance = Math.abs(p2 - p1);
+          if (expectForwardOrder && p2 < p1) {
+            distance *= ORDER_PENALTY;
+          } else if (!expectForwardOrder && p2 > p1) {
+            distance *= ORDER_PENALTY;
+          }
+          minDistance = Math.min(minDistance, distance);
+        }
+
+        if (insertionPoint > 0) {
+          int p2 = pos2[insertionPoint - 1];
+          double distance = Math.abs(p2 - p1);
+          if (expectForwardOrder && p2 < p1) {
+            distance *= ORDER_PENALTY;
+          } else if (!expectForwardOrder && p2 > p1) {
+            distance *= ORDER_PENALTY;
+          }
+          minDistance = Math.min(minDistance, distance);
+        }
+      }
+    }
+
+    return minDistance;
+  }
+
+  /**
+   * Retrieves the array of positions for {@code term} within {@code docRef}.
+   *
+   * @param term token to look up
+   * @param docRef target document reference
+   * @return sorted positions array, or {@code null} if the term does not occur
+   */
+  protected int[] getPositions(String term, DocumentReference docRef) {
+    PosTokenInfo pti = posTokenHash.get(term);
+    if (pti == null) return null;
+
+    for (PosPosting posting : pti.occList) {
+      if (posting.docRef.equals(docRef)) {
+        return posting.positions;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Incorporates a single query token into the retrieval accumulator,
+   * updating per-document dot products and returning the squared
+   * query weight contribution to the query length.
+   *
+   * @param token query token
+   * @param count token count in the query
+   * @param retrievalHash accumulator mapping documents to partial dot products
+   * @return squared query weight contribution ({@code (idf*count)^2}) or 0 if token unseen
    */
   protected double incorporateToken(String token, double count,
                                     Map<DocumentReference, DoubleValue> retrievalHash) {
     TokenInfo tokenInfo = tokenHash.get(token);
     if (tokenInfo == null) return 0.0;
+
     double weight = tokenInfo.idf * count;
     for (TokenOccurrence occ : tokenInfo.occList) {
       DoubleValue val = retrievalHash.get(occ.docRef);
@@ -292,44 +472,96 @@ protected static double computeProximityDistance(List<int[]> posLists) {
         val = new DoubleValue(0.0);
         retrievalHash.put(occ.docRef, val);
       }
-      val.value = val.value + weight * tokenInfo.idf * occ.count;
+      val.value += weight * tokenInfo.idf * occ.count;
     }
     return weight * weight;
   }
 
-  /** ========= Interactive query processing & printing (kept like baseline) ========= */
+  /**
+   * Extracts the list of unique tokens from a document in the order they first appear.
+   *
+   * @param d tokenized document
+   * @return ordered list of unique tokens
+   */
+  protected static List<String> extractOrderedUniqueTokens(Document d) {
+    List<String> order = new ArrayList<>();
+    Set<String> seen = new HashSet<>();
 
+    while (d.hasMoreTokens()) {
+      String tok = d.nextToken();
+      if (tok == null) break;
+      if (seen.add(tok)) {
+        order.add(tok);
+      }
+    }
+    return order;
+  }
+
+  /**
+   * Retrieval result with additional proximity diagnostics.
+   * Stores the baseline cosine and the computed proximity distance separately.
+   */
+  public static class RetrievalProx extends Retrieval {
+    /** Baseline cosine similarity score. */
+    final double cosine;
+    /** Average proximity distance (lower is better). */
+    double prox;
+
+    /**
+     * Creates a proximity-augmented retrieval result.
+     *
+     * @param d document reference
+     * @param finalScore final combined score (cosine/proximity)
+     * @param cosine baseline cosine score
+     * @param prox proximity distance
+     */
+    RetrievalProx(DocumentReference d, double finalScore, double cosine, double prox) {
+      super(d, finalScore);
+      this.cosine = cosine;
+      this.prox = prox;
+    }
+  }
+
+  /**
+   * Runs an interactive query loop on standard input, supporting paging,
+   * document viewing, and optional relevance feedback.
+   */
   public void processQueries() {
     System.out.println("Now able to process queries. When done, enter an empty query to exit.");
-    do {
+
+    while (true) {
       String query = UserInput.prompt("\nEnter query:  ");
       if (query.equals("")) break;
 
-      TextStringDocument orderDoc  = new TextStringDocument(query, stem);
-      List<String> qOrder = extractOrderedUniqueTokens(orderDoc);
-
-      TextStringDocument vectorDoc = new TextStringDocument(query, stem);
-      HashMapVector queryVector = vectorDoc.hashMapVector();
-
-      Retrieval[] retrievals = retrieve(queryVector, qOrder);
-      presentRetrievals(queryVector, retrievals);
-    } while (true);
+      Retrieval[] retrievals = retrieve(query);
+      presentRetrievals(new TextStringDocument(query, stem).hashMapVector(), retrievals);
+    }
   }
 
+  /**
+   * Presents retrievals, supports paging, opening documents in a browser,
+   * and applying relevance feedback when enabled.
+   *
+   * @param queryVector query vector used (possibly updated after feedback)
+   * @param retrievals retrieval results to present
+   */
   public void presentRetrievals(HashMapVector queryVector, Retrieval[] retrievals) {
     if (showRetrievals(retrievals)) {
       FeedbackProx fdback = null;
       if (feedback) fdback = new FeedbackProx(queryVector, retrievals, this);
+
       int currentPosition = MAX_RETRIEVALS;
-      int showNumber = 0;
-      do {
+
+      while (true) {
         String command = UserInput.prompt("\n Enter command:  ");
         if (command.equals("")) break;
+
         if (command.equals("m")) {
           printRetrievals(retrievals, currentPosition);
           currentPosition += MAX_RETRIEVALS;
           continue;
         }
+
         if (command.equals("r") && feedback) {
           if (fdback.isEmpty()) {
             System.out.println("Need to first view some documents and provide feedback.");
@@ -339,31 +571,41 @@ protected static double computeProximityDistance(List<int[]> posLists) {
               "\nNegative docs: " + fdback.badDocRefs);
           System.out.println("Executing New Expanded and Reweighted Query: ");
           queryVector = fdback.newQuery();
-          retrievals = retrieve(queryVector); // order fallback path for feedback
+          retrievals = retrieve(queryVector);
           fdback.retrievals = retrievals;
           if (showRetrievals(retrievals)) continue;
           else break;
         }
+
         try {
-          showNumber = Integer.parseInt(command);
+          int showNumber = Integer.parseInt(command);
+          if (showNumber > 0 && showNumber <= retrievals.length) {
+            System.out.println("Showing document " + showNumber + " in the " + Browser.BROWSER_NAME + " window.");
+            Browser.display(retrievals[showNumber - 1].docRef.file);
+            if (feedback && !fdback.haveFeedback(showNumber)) {
+              fdback.getFeedback(showNumber);
+            }
+          } else {
+            System.out.println("No such document number: " + showNumber);
+          }
         } catch (NumberFormatException e) {
           System.out.println("Unknown command.");
           System.out.println("Enter `m' to see more, a number to show the nth document, nothing to exit.");
-          if (feedback && !fdback.isEmpty())
+          if (feedback && !fdback.isEmpty()) {
             System.out.println("Enter `r' to use any feedback given to `redo' with a revised query.");
-          continue;
+          }
         }
-        if (showNumber > 0 && showNumber <= retrievals.length) {
-          System.out.println("Showing document " + showNumber + " in the " + Browser.BROWSER_NAME + " window.");
-          Browser.display(retrievals[showNumber - 1].docRef.file);
-          if (feedback && !fdback.haveFeedback(showNumber)) fdback.getFeedback(showNumber);
-        } else {
-          System.out.println("No such document number: " + showNumber);
-        }
-      } while (true);
+      }
     }
   }
 
+  /**
+   * Prints the header and the first page of retrievals, and displays
+   * usage hints for paging and feedback.
+   *
+   * @param retrievals retrieval results
+   * @return {@code true} if there are results; {@code false} otherwise
+   */
   public boolean showRetrievals(Retrieval[] retrievals) {
     if (retrievals.length == 0) {
       System.out.println("\nNo matching documents found.");
@@ -372,18 +614,27 @@ protected static double computeProximityDistance(List<int[]> posLists) {
       System.out.println("\nTop " + MAX_RETRIEVALS + " matching Documents from most to least relevant:");
       printRetrievals(retrievals, 0);
       System.out.println("\nEnter `m' to see more, a number to show the nth document, nothing to exit.");
-      if (feedback)
+      if (feedback) {
         System.out.println("Enter `r' to use any relevance feedback given to `redo' with a revised query.");
+      }
       return true;
     }
   }
 
+  /**
+   * Prints a page of retrieval results starting from {@code start}, up to {@link #MAX_RETRIEVALS}.
+   * If the retrieval is a {@link RetrievalProx}, it also prints the cosine and proximity components.
+   *
+   * @param retrievals retrieval results
+   * @param start starting index (0-based)
+   */
   public void printRetrievals(Retrieval[] retrievals, int start) {
     System.out.println("");
     if (start >= retrievals.length) {
       System.out.println("No more retrievals.");
       return;
     }
+
     for (int i = start; i < Math.min(retrievals.length, start + MAX_RETRIEVALS); i++) {
       Retrieval r = retrievals[i];
       if (r instanceof RetrievalProx) {
@@ -405,101 +656,34 @@ protected static double computeProximityDistance(List<int[]> posLists) {
     }
   }
 
-  /** ========= Helpers ========= */
-
-  /** Retrieval subclass carrying cosine & proximity components; score holds FINAL. */
-  public static class RetrievalProx extends Retrieval {
-    final double cosine; // baseline cosine
-    double prox;   // 1/(1+s) reportable proximity boost
-    RetrievalProx(DocumentReference d, double finalScore, double cosine, double prox) {
-      super(d, finalScore);
-      this.cosine = cosine;
-      this.prox = prox;
-    }
-  }
-
-  /** Get positions array for (term, docRef), or null if absent. */
-  protected int[] positionsOf(String term, DocumentReference dref) {
-    PosTokenInfo pti = posTokenHash.get(term);
-    if (pti == null) return null;
-    for (PosPosting p : pti.occList) if (p.docRef.equals(dref)) return p.positions;
-    return null;
-  }
-
-  /** Ordered unique filtered tokens from a Document (first occurrence defines order). */
-  protected static List<String> extractOrderedUniqueTokens(Document d) {
-    List<String> order = new ArrayList<>();
-    HashSet<String> seen = new HashSet<>();
-    while (d.hasMoreTokens()) {
-      String tok = d.nextToken();
-      if (tok == null) break;
-      if (seen.add(tok)) order.add(tok);
-    }
-    return order;
-  }
-
-  /** Average nearest distance over adjacent query term pairs (with reverse-order penalty). */
-  protected static double avgPairwiseNearestDistance(List<int[]> posLists, double orderPenalty) {
-    if (posLists.size() < 2) return 0.0;
-    double sum = 0.0; int pairs = 0;
-    for (int i = 0; i + 1 < posLists.size(); i++) {
-      int[] A = posLists.get(i), B = posLists.get(i + 1);
-      int best = Integer.MAX_VALUE;
-      for (int a : A) {
-        int idx = Arrays.binarySearch(B, a);
-        int ins = (idx >= 0) ? idx : -idx - 1;
-        if (ins < B.length) {
-          int b = B[ins];
-          int d = Math.abs(b - a);
-          if (b < a) d = (int) Math.round(d * orderPenalty);
-          if (d < best) best = d;
-        }
-        if (ins - 1 >= 0) {
-          int b = B[ins - 1];
-          int d = Math.abs(b - a);
-          if (b < a) d = (int) Math.round(d * orderPenalty);
-          if (d < best) best = d;
-        }
-      }
-      if (best == Integer.MAX_VALUE) best = (int) BIG_S;
-      sum += best; pairs++;
-    }
-    return sum / Math.max(1, pairs);
-  }
-
-  /** Returns slack s = max(0, span - (k-1)); Infinity if no ordered chain exists. */
-  protected static double orderedSpanSlack(List<int[]> posLists) {
-    int k = posLists.size(); if (k < 2) return 0.0;
-    int bestSpan = Integer.MAX_VALUE;
-    int[] first = posLists.get(0);
-    for (int p0 : first) {
-      int start = p0, cur = p0; boolean ok = true;
-      for (int i = 1; i < k; i++) {
-        int[] L = posLists.get(i);
-        int idx = Arrays.binarySearch(L, cur);
-        int ins = (idx >= 0) ? idx : -idx - 1;
-        if (ins >= L.length) { ok = false; break; }
-        cur = L[ins];
-      }
-      if (ok) {
-        int span = cur - start;
-        if (span < bestSpan) bestSpan = span;
-        if (bestSpan <= (k - 1)) break; // perfect adjacency
-      }
-    }
-    if (bestSpan == Integer.MAX_VALUE) return Double.POSITIVE_INFINITY;
-    return Math.max(0.0, bestSpan - (k - 1));
-  }
-
+  /**
+   * Returns the number of unique terms in the baseline index.
+   *
+   * @return vocabulary size
+   */
   public int size() { return tokenHash.size(); }
 
+  /**
+   * Clears all index structures and document references.
+   */
   public void clear() {
     docRefs.clear();
     tokenHash.clear();
     posTokenHash.clear();
   }
 
-  /** ========= Main: same flags & behavior as baseline ========= */
+  /**
+   * Entry point. Accepts flags:
+   * 
+   *   {@code -html}: index HTML documents
+   *   {@code -stem}: enable stemming
+   *   {@code -feedback}: enable interactive relevance feedback
+   *
+   * The final argument must be the directory path to index.
+   *
+   * @param args command-line arguments
+   * @throws IllegalArgumentException if an unknown flag is provided
+   */
   public static void main(String[] args) {
     String dirName = args[args.length - 1];
     short docType = DocumentIterator.TYPE_TEXT;
@@ -507,10 +691,15 @@ protected static double computeProximityDistance(List<int[]> posLists) {
 
     for (int i = 0; i < args.length - 1; i++) {
       String flag = args[i];
-      if (flag.equals("-html")) docType = DocumentIterator.TYPE_HTML;
-      else if (flag.equals("-stem")) stem = true;
-      else if (flag.equals("-feedback")) feedback = true;
-      else throw new IllegalArgumentException("Unknown flag: " + flag);
+      if (flag.equals("-html")) {
+        docType = DocumentIterator.TYPE_HTML;
+      } else if (flag.equals("-stem")) {
+        stem = true;
+      } else if (flag.equals("-feedback")) {
+        feedback = true;
+      } else {
+        throw new IllegalArgumentException("Unknown flag: " + flag);
+      }
     }
 
     InvertedPosIndex index = new InvertedPosIndex(new File(dirName), docType, stem, feedback);

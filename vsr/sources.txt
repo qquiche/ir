@@ -14,8 +14,6 @@
 ./DeepDocumentReference.java
 ./DeepRetriever.java
 ./InvertedPosIndex.java
-./TokenPosInfo.java
-./TokenPosOccurrence.java
 ./FeedbackProx.java
 ./RawTextFileDocument.java
 ./RawHTMLFileDocument.java
