@@ -1,0 +1,133 @@
+ethan21@cinnabar:~/info_retrieval$    java -cp $CLASSPATH ir.vsr.InvertedIndexRated -feedback -html /u/mooney/ir-code/corpora/cs-faculty
+Indexing documents in /u/mooney/ir-code/corpora/cs-faculty
+P001.html,P002.html,P003.html,P004.html,P005.html,P006.html,P007.html,P008.html,P009.html,P010.html,P011.html,P012.html,P013.html,P014.html,P015.html,P016.html,P017.html,P018.html,P019.html,P020.html,P021.html,P022.html,P023.html,P024.html,P025.html,P026.html,P027.html,P028.html,P029.html,P030.html,P031.html,P032.html,P033.html,P034.html,P035.html,P036.html,P037.html,P038.html,P039.html,P040.html,P041.html,P042.html,P043.html,P044.html,P045.html,P046.html,P047.html,P048.html,P049.html,P050.html,P051.html,P052.html,P053.html,P054.html,P055.html,P056.html,P057.html,P058.html,P059.html,P060.html,P061.html,P062.html,P063.html,P064.html,P065.html,P066.html,P067.html,P068.html,P069.html,P070.html,P071.html,P072.html,P073.html,P074.html,P075.html,P076.html,P077.html,P078.html,P079.html,P080.html,P081.html,P082.html,P083.html,P084.html,P085.html,P086.html,P087.html,P088.html,P089.html,P090.html,P091.html,P092.html,P093.html,P094.html,P095.html,P096.html,P097.html,P098.html,P099.html,P100.html,P101.html,P102.html,P103.html,P104.html,P105.html,P106.html,P107.html,P108.html,P109.html,P110.html,P111.html,P112.html,P113.html,P114.html,P115.html,P116.html,P117.html,P118.html,P119.html,P120.html,P121.html,P122.html,P123.html,P124.html,P125.html,P126.html,P127.html,P128.html,P129.html,P130.html,P131.html,P132.html,P133.html,P134.html,P135.html,P136.html,P137.html,P138.html,P139.html,P140.html,P141.html,P142.html,P143.html,P144.html,P145.html,P146.html,P147.html,P148.html,P149.html,P150.html,P151.html,P152.html,P153.html,P154.html,P155.html,P156.html,P157.html,P158.html,P159.html,P160.html,P161.html,P162.html,P163.html,P164.html,P165.html,P166.html,P167.html,P168.html,P169.html,P170.html,P171.html,P172.html,P173.html,P174.html,P175.html,P176.html,P177.html,P178.html,P179.html,P180.html,P181.html,P182.html,P183.html,P184.html,P185.html,P186.html,P187.html,P188.html,P189.html,P190.html,P191.html,P192.html,P193.html,P194.html,P195.html,P196.html,P197.html,P198.html,P199.html,P200.html,P201.html,P202.html,P203.html,P204.html,P205.html,P206.html,P207.html,P208.html,P209.html,P210.html,P211.html,P212.html,P213.html,P214.html,P215.html,P216.html,P217.html,P218.html,P219.html,P220.html,P221.html,P222.html,P223.html,P224.html,P225.html,P226.html,P227.html,P228.html,P229.html,P230.html,P231.html,P232.html,P233.html,P234.html,P235.html,P236.html,P237.html,P238.html,P239.html,P240.html,P241.html,P242.html,P243.html,P244.html,P245.html,P246.html,P247.html,P248.html,P249.html,P250.html,P251.html,P252.html,P253.html,P254.html,P255.html,P256.html,P257.html,P258.html,P259.html,P260.html,P261.html,P262.html,P263.html,P264.html,P265.html,P266.html,P267.html,P268.html,P269.html,P270.html,P271.html,P272.html,P273.html,P274.html,P275.html,P276.html,P277.html,P278.html,P279.html,P280.html,P281.html,P282.html,P283.html,P284.html,P285.html,P286.html,P287.html,P288.html,P289.html,P290.html,P291.html,P292.html,P293.html,P294.html,P295.html,P296.html,P297.html,P298.html,P299.html,P300.html,P301.html,P302.html,P303.html,P304.html,P305.html,P306.html,P307.html,P308.html,P309.html,P310.html,P311.html,P312.html,P313.html,P314.html,P315.html,P316.html,P317.html,P318.html,P319.html,P320.html,P321.html,P322.html,P323.html,P324.html,P325.html,P326.html,P327.html,P328.html,P329.html,P330.html,P331.html,P332.html,P333.html,P334.html,P335.html,P336.html,P337.html,P338.html,P339.html,P340.html,P341.html,P342.html,P343.html,P344.html,P345.html,P346.html,P347.html,P348.html,P349.html,P350.html,P351.html,P352.html,P353.html,P354.html,P355.html,P356.html,P357.html,P358.html,P359.html,P360.html,P361.html,P362.html,P363.html,P364.html,P365.html,P366.html,P367.html,P368.html,P369.html,P370.html,P371.html,P372.html,P373.html,P374.html,P375.html,P376.html,P377.html,P378.html,P379.html,P380.html,P381.html,P382.html,P383.html,P384.html,P385.html,P386.html,P387.html,P388.html,P389.html,P390.html,P391.html,P392.html,P393.html,P394.html,P395.html,P396.html,P397.html,P398.html,P399.html,P400.html,P401.html,P402.html,P403.html,P404.html,P405.html,P406.html,P407.html,P408.html,P409.html,P410.html,P411.html,P412.html,P413.html,P414.html,P415.html,P416.html,P417.html,P418.html,P419.html,P420.html,P421.html,P422.html,P423.html,P424.html,P425.html,P426.html,P427.html,P428.html,P429.html,P430.html,P431.html,P432.html,P433.html,P434.html,P435.html,P436.html,P437.html,P438.html,P439.html,P440.html,P441.html,P442.html,P443.html,P444.html,P445.html,P446.html,P447.html,P448.html,P449.html,P450.html,P451.html,P452.html,P453.html,P454.html,P455.html,P456.html,P457.html,P458.html,P459.html,P460.html,P461.html,P462.html,P463.html,P464.html,P465.html,P466.html,P467.html,P468.html,P469.html,P470.html,P471.html,P472.html,P473.html,P474.html,P475.html,P476.html,P477.html,P478.html,P479.html,P480.html,P481.html,P482.html,P483.html,P484.html,P485.html,P486.html,P487.html,P488.html,P489.html,P490.html,P491.html,P492.html,P493.html,P494.html,P495.html,P496.html,P497.html,P498.html,P499.html,P500.html,P501.html,P502.html,P503.html,P504.html,P505.html,P506.html,P507.html,P508.html,P509.html,P510.html,P511.html,P512.html,P513.html,P514.html,P515.html,P516.html,P517.html,P518.html,P519.html,P520.html,P521.html,P522.html,P523.html,P524.html,P525.html,P526.html,P527.html,P528.html,P529.html,P530.html,P531.html,P532.html,P533.html,P534.html,P535.html,P536.html,P537.html,P538.html,P539.html,P540.html,P541.html,P542.html,P543.html,P544.html,P545.html,P546.html,P547.html,P548.html,P549.html,P550.html,P551.html,P552.html,P553.html,P554.html,P555.html,P556.html,P557.html,P558.html,P559.html,P560.html,P561.html,P562.html,P563.html,P564.html,P565.html,P566.html,P567.html,P568.html,P569.html,P570.html,P571.html,P572.html,P573.html,P574.html,P575.html,P576.html,P577.html,P578.html,P579.html,P580.html,P581.html,P582.html,P583.html,P584.html,P585.html,P586.html,P587.html,P588.html,P589.html,P590.html,P591.html,P592.html,P593.html,P594.html,P595.html,P596.html,P597.html,P598.html,P599.html,P600.html,P601.html,P602.html,P603.html,P604.html,P605.html,P606.html,P607.html,P608.html,P609.html,P610.html,P611.html,P612.html,P613.html,P614.html,P615.html,P616.html,P617.html,P618.html,P619.html,P620.html,P621.html,P622.html,P623.html,P624.html,P625.html,P626.html,P627.html,P628.html,P629.html,P630.html,P631.html,P632.html,P633.html,P634.html,P635.html,P636.html,P637.html,P638.html,P639.html,P640.html,P641.html,P642.html,P643.html,P644.html,P645.html,P646.html,P647.html,P648.html,P649.html,P650.html,P651.html,P652.html,P653.html,P654.html,P655.html,P656.html,P657.html,P658.html,P659.html,P660.html,P661.html,P662.html,P663.html,P664.html,P665.html,P666.html,P667.html,P668.html,P669.html,P670.html,P671.html,P672.html,P673.html,P674.html,P675.html,P676.html,P677.html,P678.html,P679.html,P680.html,P681.html,P682.html,P683.html,P684.html,P685.html,P686.html,P687.html,P688.html,P689.html,P690.html,P691.html,P692.html,P693.html,P694.html,P695.html,P696.html,P697.html,P698.html,P699.html,P700.html,P701.html,P702.html,P703.html,P704.html,P705.html,P706.html,P707.html,P708.html,P709.html,P710.html,P711.html,P712.html,P713.html,P714.html,P715.html,P716.html,P717.html,P718.html,P719.html,P720.html,P721.html,P722.html,P723.html,P724.html,P725.html,P726.html,P727.html,P728.html,P729.html,P730.html,P731.html,P732.html,P733.html,P734.html,P735.html,P736.html,P737.html,P738.html,P739.html,P740.html,P741.html,P742.html,P743.html,P744.html,P745.html,P746.html,P747.html,P748.html,P749.html,P750.html,P751.html,P752.html,P753.html,P754.html,P755.html,P756.html,P757.html,P758.html,P759.html,P760.html,P761.html,P762.html,P763.html,P764.html,P765.html,P766.html,P767.html,P768.html,P769.html,P770.html,P771.html,P772.html,P773.html,P774.html,P775.html,P776.html,P777.html,P778.html,P779.html,P780.html,P781.html,P782.html,P783.html,P784.html,P785.html,P786.html,P787.html,P788.html,P789.html,P790.html,P791.html,P792.html,P793.html,P794.html,P795.html,P796.html,P797.html,P798.html,P799.html,P800.html,P801.html,P802.html,P803.html,P804.html,P805.html,P806.html,P807.html,P808.html,P809.html,P810.html,P811.html,P812.html,P813.html,P814.html,P815.html,P816.html,P817.html,P818.html,P819.html,P820.html,P821.html,P822.html,P823.html,P824.html,P825.html,P826.html,P827.html,P828.html,P829.html,P830.html,P831.html,P832.html,P833.html,P834.html,P835.html,P836.html,P837.html,P838.html,P839.html,P840.html,P841.html,P842.html,P843.html,P844.html,P845.html,P846.html,P847.html,P848.html,P849.html,P850.html,P851.html,P852.html,P853.html,P854.html,P855.html,P856.html,P857.html,P858.html,P859.html,P860.html,P861.html,P862.html,P863.html,P864.html,P865.html,P866.html,P867.html,P868.html,P869.html,P870.html,P871.html,P872.html,P873.html,P874.html,P875.html,P876.html,P877.html,P878.html,P879.html,P880.html,P881.html,P882.html,P883.html,P884.html,P885.html,P886.html,P887.html,P888.html,P889.html,P890.html,P891.html,P892.html,P893.html,P894.html,P895.html,P896.html,P897.html,P898.html,P899.html,P900.html,P901.html,P902.html,P903.html,P904.html,P905.html,P906.html,P907.html,P908.html,P909.html,P910.html,P911.html,P912.html,P913.html,P914.html,P915.html,P916.html,P917.html,P918.html,P919.html,P920.html,P921.html,P922.html,P923.html,P924.html,P925.html,P926.html,P927.html,P928.html,P929.html,P930.html,P931.html,P932.html,P933.html,P934.html,P935.html,P936.html,P937.html,P938.html,P939.html,P940.html,P941.html,P942.html,P943.html,P944.html,P945.html,P946.html,P947.html,P948.html,P949.html,P950.html,P951.html,P952.html,P953.html,P954.html,P955.html,P956.html,P957.html,P958.html,P959.html,P960.html,P961.html,P962.html,P963.html,P964.html,P965.html,P966.html,P967.html,P968.html,P969.html,P970.html,P971.html,P972.html,P973.html,P974.html,P975.html,P976.html,P977.html,P978.html,P979.html,P980.html,P981.html,P982.html,P983.html,P984.html,P985.html,P986.html,P987.html,P988.html,P989.html,P990.html,P991.html,P992.html,P993.html,P994.html,P995.html,P996.html,P997.html,P998.html,P999.html,P1000.html,
+Indexed 1000 documents with 20196 unique terms.
+Now able to process queries. When done, enter an empty query to exit.
+
+Enter query:  networks
+
+Top 10 matching Documents from most to least relevant:
+
+1.  P759.html            Score: 0.20002
+2.  P963.html            Score: 0.17591
+3.  P799.html            Score: 0.16619
+4.  P750.html            Score: 0.14794
+5.  P676.html            Score: 0.13787
+6.  P022.html            Score: 0.12174
+7.  P777.html            Score: 0.12118
+8.  P125.html            Score: 0.11143
+9.  P727.html            Score: 0.09821
+10. P144.html            Score: 0.09513
+
+Enter `m' to see more, a number to show the nth document, nothing to exit.
+Enter `r' to use any relevance feedback given to `redo' with a revised query.
+
+ Enter command:  1  
+Showing document 1 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 0.5
+Added to relevant documents with rating: 0.5
+
+ Enter command:  2
+Showing document 2 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): -1
+Added to irrelevant documents with rating: -1.0
+
+ Enter command:  3
+Showing document 3 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): -1
+Added to irrelevant documents with rating: -1.0
+
+ Enter command:  4
+Showing document 4 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): -1
+Added to irrelevant documents with rating: -1.0
+
+ Enter command:  5
+Showing document 5 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 1
+Added to relevant documents with rating: 1.0
+
+ Enter command:  6
+Showing document 6 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 0.5
+Added to relevant documents with rating: 0.5
+
+ Enter command:  7
+Showing document 7 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): -1
+Added to irrelevant documents with rating: -1.0
+
+ Enter command:  r
+Positive docs: [P759.html, P676.html, P022.html]
+Negative docs: [P963.html, P799.html, P750.html, P777.html]
+Executing New Expanded and Reweighted Query: 
+
+Top 10 matching Documents from most to least relevant:
+
+1.  P676.html            Score: 0.17615
+2.  P759.html            Score: 0.05576
+3.  P022.html            Score: 0.05473
+4.  P113.html            Score: 0.04023
+5.  P079.html            Score: 0.03062
+6.  P672.html            Score: 0.01749
+7.  P551.html            Score: 0.0114
+8.  P009.html            Score: 0.00945
+9.  P783.html            Score: 0.00898
+10. P011.html            Score: 0.00851
+
+Enter `m' to see more, a number to show the nth document, nothing to exit.
+Enter `r' to use any relevance feedback given to `redo' with a revised query.
+
+ Enter command:  1
+Showing document 1 in the firefox window.
+
+ Enter command:  2
+Showing document 2 in the firefox window.
+
+ Enter command:  3
+Showing document 3 in the firefox window.
+
+ Enter command:  4
+Showing document 4 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 0.5
+Added to relevant documents with rating: 0.5
+
+ Enter command:  5
+Showing document 5 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 0.7
+Added to relevant documents with rating: 0.7
+
+ Enter command:  6  
+Showing document 6 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): 0.1
+Added to relevant documents with rating: 0.1
+
+ Enter command:  7
+Showing document 7 in the firefox window.
+Enter relevance rating for this document (-1 to +1, 0 for not relevant): -1
+Added to irrelevant documents with rating: -1.0
+
+ Enter command:  r
+Positive docs: [P759.html, P676.html, P022.html, P113.html, P079.html, P672.html]
+Negative docs: [P963.html, P799.html, P750.html, P777.html, P551.html]
+Executing New Expanded and Reweighted Query: 
+
+Top 10 matching Documents from most to least relevant:
+
+1.  P079.html            Score: 0.27399
+2.  P676.html            Score: 0.19908
+3.  P672.html            Score: 0.15544
+4.  P675.html            Score: 0.1118
+5.  P113.html            Score: 0.10784
+6.  P022.html            Score: 0.10418
+7.  P759.html            Score: 0.08604
+8.  P677.html            Score: 0.06283
+9.  P009.html            Score: 0.05531
+10. P001.html            Score: 0.04022
+
+Enter `m' to see more, a number to show the nth document, nothing to exit.
+Enter `r' to use any relevance feedback given to `redo' with a revised query.
+
+ Enter command:  
+
+Enter query:  

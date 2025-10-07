@@ -1,0 +1,17 @@
+set xlabel "Rank"
+set ylabel "NDCG"
+
+set terminal postscript color
+set size 0.75,0.75
+
+set style data linespoints
+set key top right
+
+set xrange [1:10]
+set yrange [0:1]
+
+set output "combined_ndcg.ps"
+plot 'control.ndcg' title "No Feedback" with linespoints lt 1 lc rgb "blue" pt 7, \
+     'binary.ndcg'  title "Binary Feedback" with linespoints lt 2 lc rgb "red"  pt 5, \
+     'rated.ndcg'   title "Rated Feedback"  with linespoints lt 3 lc rgb "green" pt 9
+set output
